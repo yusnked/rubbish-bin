@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+# {{ output "/opt/homebrew/bin/yabai" "--version" }}
+
+set -eu
+
+temp_file=$(mktemp '/tmp/yabai-sudoers-XXXX')
+trap 'sudo rm -rf "$temp_file"' EXIT
+
+yabai_hash=$(shasum -a 256 /opt/homebrew/bin/yabai)
+echo "$USER ALL=(root) NOPASSWD: sha256:${yabai_hash%% *} /opt/homebrew/bin/yabai --load-sa" >"$temp_file"
+
+if visudo -cqf "$temp_file"; then
+    sudo chown root:wheel "$temp_file"
+    sudo cp "$temp_file" '/private/etc/sudoers.d/yabai'
+else
+    echo 'yabai-sudoers format error' >&2
+    exit 1
+fi
